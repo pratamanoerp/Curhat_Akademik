@@ -232,9 +232,3 @@ def get_chat(user_id):
 # =========================
 if __name__ == '__main__':
     app.run(debug=True)
-
-# =========================
-# RUN APP
-# =========================
-if __name__ == '__main__':
-    app.run(debug=True)
