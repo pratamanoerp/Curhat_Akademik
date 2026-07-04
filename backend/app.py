@@ -6,6 +6,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client
 from openai import OpenAI
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 CORS(app)
@@ -43,14 +44,32 @@ def register():
 
     data = request.json
 
-    nama = data['nama']
-    email = data['email']
-    password = data['password']
+    nama = data.get("nama")
+    email = data.get("email")
+    password = data.get("password")
+
+    if not nama or not email or not password:
+        return jsonify({
+            "message": "Semua data harus diisi."
+        }), 400
+
+    # Cek apakah email sudah digunakan
+    cek = supabase.table("users") \
+        .select("*") \
+        .eq("email", email) \
+        .execute()
+
+    if len(cek.data) > 0:
+        return jsonify({
+            "message": "Email sudah terdaftar."
+        }), 400
+
+    hashed_password = generate_password_hash(password)
 
     response = supabase.table("users").insert({
         "nama": nama,
         "email": email,
-        "password": password
+        "password": hashed_password
     }).execute()
 
     return jsonify({
@@ -66,19 +85,31 @@ def login():
 
     data = request.json
 
-    email = data['email']
-    password = data['password']
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return jsonify({
+            "message": "Email dan password harus diisi."
+        }), 400
 
     response = supabase.table("users") \
         .select("*") \
         .eq("email", email) \
-        .eq("password", password) \
         .execute()
 
-    if len(response.data) > 0:
+    if len(response.data) == 0:
+        return jsonify({
+            "message": "Email atau password salah"
+        }), 401
+
+    user = response.data[0]
+
+    if check_password_hash(user["password"], password):
+
         return jsonify({
             "message": "Login berhasil",
-            "user": response.data[0]
+            "user": user
         })
 
     return jsonify({
@@ -92,11 +123,16 @@ def login():
 def chat():
 
     try:
-
+        
         data = request.json
 
-        user_id = data["user_id"]
-        pesan = data["pesan"]
+        user_id = data.get("user_id")
+        pesan = data.get("pesan")
+
+        if not user_id or not pesan:
+            return jsonify({
+                "message": "user_id dan pesan wajib diisi."
+            }), 400
 
         # =========================
         # AMBIL 20 RIWAYAT CHAT TERAKHIR
@@ -143,22 +179,17 @@ def chat():
         # MASUKKAN RIWAYAT CHAT
         # =========================
         for item in history_data:
-        
-            messages.append({
-        "role": "user",
-        "content": item["pesan_user"]
-        })
 
-        if item["respon_gpt"]:
             messages.append({
-        "role": "assistant",
-        "content": item["respon_gpt"]
-        })
-        
-        messages.append({
-        "role": "user",
-        "content": pesan
-        })
+                "role": "user",
+                "content": item["pesan_user"]
+            })
+
+            if item["respon_gpt"]:
+                messages.append({
+                    "role": "assistant",
+                    "content": item["respon_gpt"]
+                })
 
         # =========================
         # PESAN TERBARU USER
@@ -198,9 +229,14 @@ def save_chat():
 
     data = request.json
 
-    user_id = data["user_id"]
-    pesan_user = data["pesan_user"]
+    user_id = data.get("user_id")
+    pesan_user = data.get("pesan_user")
     respon_gpt = data.get("respon_gpt", "")
+
+    if not user_id or not pesan_user:
+        return jsonify({
+            "message": "user_id dan pesan_user wajib diisi."
+        }), 400
 
     response = supabase.table("chats").insert({
         "user_id": user_id,
@@ -230,5 +266,5 @@ def get_chat(user_id):
 # =========================
 # RUN APP
 # =========================
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run()
