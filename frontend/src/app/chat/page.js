@@ -48,7 +48,9 @@ export default function ChatPage() {
   // =========================
   const loadChat = async (userId) => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/get-chat/${userId}`);
+      const response = await fetch(
+        `https://curhat-akademik-backend.vercel.app/get-chat/${userId}`,
+      );
 
       const data = await response.json();
 
@@ -104,16 +106,19 @@ export default function ChatPage() {
       // =========================
       // MINTA JAWABAN GPT
       // =========================
-      const response = await fetch("http://127.0.0.1:5000/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "https://curhat-akademik-backend.vercel.app/chat",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            pesan: pesanUser,
+          }),
         },
-        body: JSON.stringify({
-          user_id: user.id,
-          pesan: pesanUser,
-        }),
-      });
+      );
 
       const data = await response.json();
 
@@ -149,13 +154,16 @@ export default function ChatPage() {
 
       console.log("Payload:", payload);
 
-      const saveResponse = await fetch("http://127.0.0.1:5000/save-chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const saveResponse = await fetch(
+        "https://curhat-akademik-backend.vercel.app/save-chat",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
         },
-        body: JSON.stringify(payload),
-      });
+      );
 
       const saveData = await saveResponse.json();
 
